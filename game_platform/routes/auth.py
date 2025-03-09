@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flasgger import swag_from
 from werkzeug.security import generate_password_hash
 from ..models import User
 from .. import db, jwt
@@ -11,6 +12,40 @@ from flask_jwt_extended import (
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/register', methods=['POST'])
+@swag_from({
+    'tags': ['Authentication'],
+    'description': 'Register a new user',
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'username': {'type': 'string'},
+                    'email': {'type': 'string'},
+                    'password': {'type': 'string'}
+                }
+            }
+        }
+    ],
+    'responses': {
+        201: {
+            'description': 'User registered successfully',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string'},
+                    'user_id': {'type': 'integer'}
+                }
+            }
+        },
+        400: {
+            'description': 'Invalid input'
+        }
+    }
+})
 def register():
     data = request.get_json()
     username = data.get('username')

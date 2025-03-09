@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flasgger import swag_from
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..models import Item, User
 from .. import db
@@ -6,6 +7,26 @@ from .. import db
 items_bp = Blueprint('items', __name__)
 
 @items_bp.route('/', methods=['GET'])
+@swag_from({
+    'tags': ['Items'],
+    'description': 'Get all items',
+    'responses': {
+        200: {
+            'description': 'List of items',
+            'schema': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'integer'},
+                        'name': {'type': 'string'},
+                        'price': {'type': 'number'}
+                    }
+                }
+            }
+        }
+    }
+})
 def get_items():
     items = Item.query.all()
     return jsonify([{
@@ -18,6 +39,51 @@ def get_items():
 
 @items_bp.route('/', methods=['POST'])
 @jwt_required()
+@swag_from({
+    'tags': ['Items'],
+    'description': 'Create a new item',
+    'security': [{'BearerAuth': []}],
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'name': {'type': 'string'},
+                    'description': {'type': 'string'},
+                    'price': {'type': 'number'},
+                    'stock': {'type': 'integer'}
+                },
+                'required': ['name', 'price', 'stock']
+            }
+        }
+    ],
+    'responses': {
+        201: {
+            'description': 'Item created successfully',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string'},
+                    'item': {
+                        'type': 'object',
+                        'properties': {
+                            'id': {'type': 'integer'},
+                            'name': {'type': 'string'},
+                            'description': {'type': 'string'},
+                            'price': {'type': 'number'},
+                            'stock': {'type': 'integer'}
+                        }
+                    }
+                }
+            }
+        },
+        400: {'description': 'Missing required fields'},
+        403: {'description': 'Permission denied'}
+    }
+})
 def create_item():
     current_user = get_jwt_identity()
     user = User.query.get(current_user)
@@ -55,6 +121,35 @@ def create_item():
     }), 201
 
 @items_bp.route('/<int:item_id>', methods=['GET'])
+@swag_from({
+    'tags': ['Items'],
+    'description': 'Get item details',
+    'parameters': [
+        {
+            'name': 'item_id',
+            'in': 'path',
+            'type': 'integer',
+            'required': True,
+            'description': 'ID of the item to retrieve'
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Item details',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'id': {'type': 'integer'},
+                    'name': {'type': 'string'},
+                    'description': {'type': 'string'},
+                    'price': {'type': 'number'},
+                    'stock': {'type': 'integer'}
+                }
+            }
+        },
+        404: {'description': 'Item not found'}
+    }
+})
 def get_item(item_id):
     item = Item.query.get_or_404(item_id)
     return jsonify({
@@ -67,6 +162,57 @@ def get_item(item_id):
 
 @items_bp.route('/<int:item_id>', methods=['PUT'])
 @jwt_required()
+@swag_from({
+    'tags': ['Items'],
+    'description': 'Update item details',
+    'security': [{'BearerAuth': []}],
+    'parameters': [
+        {
+            'name': 'item_id',
+            'in': 'path',
+            'type': 'integer',
+            'required': True,
+            'description': 'ID of the item to update'
+        },
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'name': {'type': 'string'},
+                    'description': {'type': 'string'},
+                    'price': {'type': 'number'},
+                    'stock': {'type': 'integer'}
+                }
+            }
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Item updated successfully',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string'},
+                    'item': {
+                        'type': 'object',
+                        'properties': {
+                            'id': {'type': 'integer'},
+                            'name': {'type': 'string'},
+                            'description': {'type': 'string'},
+                            'price': {'type': 'number'},
+                            'stock': {'type': 'integer'}
+                        }
+                    }
+                }
+            }
+        },
+        403: {'description': 'Permission denied'},
+        404: {'description': 'Item not found'}
+    }
+})
 def update_item(item_id):
     current_user = get_jwt_identity()
     user = User.query.get(current_user)
@@ -100,6 +246,33 @@ def update_item(item_id):
 
 @items_bp.route('/<int:item_id>', methods=['DELETE'])
 @jwt_required()
+@swag_from({
+    'tags': ['Items'],
+    'description': 'Delete an item',
+    'security': [{'BearerAuth': []}],
+    'parameters': [
+        {
+            'name': 'item_id',
+            'in': 'path',
+            'type': 'integer',
+            'required': True,
+            'description': 'ID of the item to delete'
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Item deleted successfully',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string'}
+                }
+            }
+        },
+        403: {'description': 'Permission denied'},
+        404: {'description': 'Item not found'}
+    }
+})
 def delete_item(item_id):
     current_user = get_jwt_identity()
     user = User.query.get(current_user)
